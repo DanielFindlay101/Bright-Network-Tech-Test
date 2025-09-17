@@ -1,103 +1,187 @@
+"use client";
+import { useState, useMemo } from "react";
+import { v4 as uuidv4 } from "uuid";
 import Image from "next/image";
+import discover from "../app/assets/discover-journey-maze.svg";
+import clipboard from "../app/assets/clipboard-question.svg";
+import stopwatch from "../app/assets/stopwatch.svg";
+import scissors from "../app/assets/scissor-cutting.svg";
+import Card from "./components/Card";
+import QuestionManager from "./manager/questionManager";
+import ResultCard from "./components/ResultCard";
+
+export interface Question {
+  text: string;
+  id: string;
+}
+
+export interface Answer {
+  questionId: string;
+  answer: number;
+}
+
+const answerArray = [1, 2, 3, 4, 5, 6, 7];
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [hasCompleted, setHasCompleted] = useState(false);
+  const [answers, setAnswers] = useState<Answer[]>([]);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const manager = new QuestionManager();
+
+  // stops userId from chaning every render
+  const userId = useMemo(() => uuidv4(), []);
+
+  const fetchQuestions = async () => {
+    const data = await manager.getQuestions(userId);
+    setQuestions(data.questions);
+  };
+
+  const handleClick = (answerId: number) => {
+    const currentQuestion = questions[currentIndex];
+
+    const newAnswer: Answer = {
+      questionId: currentQuestion.id,
+      answer: answerId,
+    };
+
+    setAnswers((prev) => [...prev, newAnswer]);
+
+    setCurrentIndex((prev) => prev + 1);
+  };
+  console.log(answers);
+
+  const submitAnswers = async () => {
+    await manager.submitAnswers(userId, answers);
+    setHasCompleted(true);
+  };
+
+  const seeResults = async (userID: string) => {
+    await manager.seeResults(userID);
+  };
+
+  const percentageComplete = (currentIndex / questions?.length) * 100;
+  return (
+    <div className=" bg-slate-100 w-full mb-12">
+      <nav className="bg-slate-200 w-full h-1/5 flex flex-col-reverse md:flex-row items-center px-12">
+        <div className="space-y-4">
+          <h2 className="text-2xl text-slate-950 font-bold tracking-wide">
+            Career path test
+          </h2>
+          <p className="text-slate-800">
+            Discover careers that match your skills and personality
+          </p>
         </div>
+        <Image
+          src={discover}
+          alt="graduation"
+          className="w-full md:w-1/2 h-full ml-auto"
+        />
+      </nav>
+      <main className="p-8 md:p-12">
+        <div className="flex flex-col md:flex-row justify-evenly gap-8">
+          <Card
+            className="bg-orange-100/50 border-orange-500"
+            title="24 questions"
+            description="Answer 24 questions about your working style and career
+              preferences"
+            icon={clipboard}
+          />
+
+          <Card
+            className="bg-violet-100/50 border-violet-500"
+            title="2 minutes"
+            description="Gain insights into your future career in just two minutes"
+            icon={stopwatch}
+          />
+          <Card
+            className="bg-yellow-100/50 border-yellow-500"
+            title="Personalised advice"
+            description="Receive personalised advice to guide you on your next steps"
+            icon={scissors}
+          />
+        </div>
+
+        <div className="mt-12 md:mt-20 md:px-12 text-slate-800 space-y-4">
+          <p>
+            We&apos;ve analysed data from thousands of our members who work in
+            graduate roles across a range of sectors to understand which
+            personalities, skills and values best fit each career path.{" "}
+          </p>
+          <p>
+            Take this test to understand what career path you might be suited to
+            and how to get started.
+          </p>
+        </div>
+
+        {!hasCompleted ? (
+          <div className="border border-slate-300 w-4/5 mt-12 mx-auto shadow-xl shadow-slate-200">
+            <div className=" border-b flex items-center gap-4 border-slate-300  w-full p-6">
+              <p className="text-slate-800">
+                Your progress - {Math.ceil(percentageComplete)}%
+              </p>
+              <progress
+                className="progress progress-primary w-56"
+                value={Math.ceil(percentageComplete)}
+                max="100"
+              ></progress>
+            </div>
+            <div className="p-2 md:py-12 md:px-20">
+              {questions.length === 0 ? (
+                <button
+                  className="btn btn-primary bg-orange-500 border-orange-300 rounded-md"
+                  onClick={() => fetchQuestions()}
+                >
+                  Get questions
+                </button>
+              ) : (
+                <>
+                  {currentIndex !== questions.length ? (
+                    <>
+                      <div className="flex gap-2">
+                        <h3 className="text-orange-500">
+                          Q{currentIndex + 1}/{questions.length}
+                        </h3>
+                        <p className="text-slate-700 text-sm">
+                          In a job, I would be motivated by
+                        </p>
+                      </div>
+                      <p className="text-slate-800 font-bold">
+                        {questions[currentIndex].text}
+                      </p>
+
+                      <div className="flex flex-col items-center justify-center">
+                        <ul className="steps  steps-vertical md:steps-horizontal mt-6">
+                          {answerArray.map((answer, id) => (
+                            // TODO: need to change colour of step onClick
+                            <li
+                              key={id}
+                              className="step hover:cursor-pointer"
+                              onClick={() => handleClick(id + 1)}
+                            >
+                              {answer}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </>
+                  ) : (
+                    <button
+                      className="btn btn-primary bg-orange-500 border-orange-300 rounded-md"
+                      onClick={() => submitAnswers()}
+                    >
+                      Finish
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        ) : (
+          <ResultCard handler={() => seeResults(userId)} />
+        )}
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
